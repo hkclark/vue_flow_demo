@@ -1,0 +1,48 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Custom styles for Vue Flow */
+.vue-flow__node {
+  border-radius: 4px;
+  padding: 0;
+  background: white;
+  cursor: move;
+}
+
+.vue-flow__node.selected {
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+}
+
+.vue-flow__edge-path {
+  cursor: pointer;
+}
+
+.vue-flow__edge.selected .vue-flow__edge-path {
+  stroke-width: 3;
+}
+
+.vue-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #005073;
+  border: 2px solid white;
+}
+
+.vue-flow__handle:hover {
+  background: #0066cc;
+}
+
