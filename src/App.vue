@@ -80,8 +80,15 @@ onConnect((params) => {
       labelFontSize: 12,
       labelColor: connType.color,
       sourceMarker: 'none',
-      targetMarker: 'none'
-    }
+      targetMarker: 'none',
+      // Metadata fields
+      notes: '',
+      url: '',
+      tags: [],
+      locked: false
+    },
+    selectable: true,
+    deletable: true
   }
 
   addEdges([edge])
@@ -123,11 +130,19 @@ const onDrop = (event) => {
       labelUnderline: false,
       fillColor: isText ? 'none' : '#ffffff',
       borderColor: '#005073',
-      borderWidth: isText ? 0 : 2
+      borderWidth: isText ? 0 : 2,
+      // Metadata fields
+      notes: '',
+      url: '',
+      tags: [],
+      locked: false
     },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
-    zIndex: nodes.value.length
+    zIndex: nodes.value.length,
+    draggable: true,
+    selectable: true,
+    connectable: true
   }
 
   addNodes([newNode])
@@ -206,6 +221,8 @@ const updateEdgeData = (edgeData) => {
     labelShowBg: true,
     markerStart: markerStart,
     markerEnd: markerEnd,
+    selectable: !edgeData.locked,
+    deletable: !edgeData.locked,
     data: {
       ...edgeData,
       // Store labels for custom rendering
@@ -255,8 +272,12 @@ const updateNodeData = (nodeData) => {
   const node = nodes.value.find(n => n.id === nodeData.id)
   if (!node) return
 
+  // Update Vue Flow element properties based on locked state
   updateNode(nodeData.id, {
-    data: nodeData
+    data: nodeData,
+    draggable: !nodeData.locked,
+    selectable: !nodeData.locked,
+    connectable: !nodeData.locked
   })
 
   showNodeModal.value = false

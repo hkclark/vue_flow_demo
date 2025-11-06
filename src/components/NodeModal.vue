@@ -25,8 +25,25 @@ const formData = ref({
   borderColor: '#005073',
   borderWidth: 2,
   width: 70,
-  height: 70
+  height: 70,
+  notes: '',
+  url: '',
+  tags: [],
+  locked: false
 })
+
+const newTag = ref('')
+
+const addTag = () => {
+  if (newTag.value.trim() && !formData.value.tags.includes(newTag.value.trim())) {
+    formData.value.tags.push(newTag.value.trim())
+    newTag.value = ''
+  }
+}
+
+const removeTag = (index) => {
+  formData.value.tags.splice(index, 1)
+}
 
 const isIcon = computed(() => formData.value.isIcon)
 
@@ -48,7 +65,11 @@ watch(() => props.node, (newNode) => {
       height: newNode.data.height || 70,
       svg: newNode.data.svg,
       deviceType: newNode.data.deviceType,
-      isIcon: newNode.data.isIcon
+      isIcon: newNode.data.isIcon,
+      notes: newNode.data.notes || '',
+      url: newNode.data.url || '',
+      tags: newNode.data.tags || [],
+      locked: newNode.data.locked || false
     }
 
     // Position modal in a fixed position - top center of screen
@@ -225,6 +246,44 @@ onMounted(() => {
             </select>
           </div>
         </div>
+      </div>
+
+      <div class="section-title" style="margin-top: 16px;">Metadata</div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea v-model="formData.notes" class="form-control textarea-control" rows="3" placeholder="Add notes..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>URL</label>
+        <input v-model="formData.url" type="url" class="form-control" placeholder="https://...">
+      </div>
+
+      <div class="form-group">
+        <label>Tags</label>
+        <div class="tags-input-wrapper">
+          <input
+            v-model="newTag"
+            @keypress.enter.prevent="addTag"
+            type="text"
+            class="form-control"
+            placeholder="Type tag and press Enter"
+          >
+        </div>
+        <div v-if="formData.tags.length > 0" class="tags-list">
+          <span v-for="(tag, index) in formData.tags" :key="index" class="tag-chip">
+            {{ tag }}
+            <button @click="removeTag(index)" class="tag-remove">×</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-inline lock-checkbox">
+          <input v-model="formData.locked" type="checkbox">
+          <span>🔒 Lock element (read-only)</span>
+        </label>
       </div>
     </div>
 
@@ -432,6 +491,67 @@ onMounted(() => {
 
 .btn-apply:hover {
   background: #15803d;
+}
+
+.textarea-control {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.tags-input-wrapper {
+  margin-bottom: 6px;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  color: #3730a3;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.tag-remove:hover {
+  color: #1e1b4b;
+}
+
+.lock-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5563;
+  cursor: pointer;
+  padding: 8px;
+  background: #fef3c7;
+  border-radius: 4px;
+  border: 1px solid #fde68a;
+}
+
+.lock-checkbox input[type="checkbox"] {
+  cursor: pointer;
 }
 </style>
 
