@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   edge: Object
@@ -67,8 +67,8 @@ watch(() => props.edge, (newEdge) => {
 
     // Position modal in a fixed position - top center of screen
     position.value = {
-      x: window.innerWidth / 2 - 310, // Center horizontally (310 = half of 620px modal width)
-      y: 100 // Fixed distance from top
+      x: window.innerWidth / 2 - 310,
+      y: 100
     }
   }
 }, { immediate: true })
@@ -99,9 +99,22 @@ const stopDrag = () => {
   isDragging.value = false
 }
 
+const handleKeydown = (e) => {
+  if (e.key === 'Escape') {
+    emit('close')
+  }
+}
+
 onMounted(() => {
   document.addEventListener('mousemove', onDrag)
   document.addEventListener('mouseup', stopDrag)
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 

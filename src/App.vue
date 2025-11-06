@@ -215,7 +215,7 @@ const updateEdgeData = (edgeData) => {
     labelStyle: {
       fill: edgeData.labelColor,
       fontWeight: 600,
-      fontSize: edgeData.labelFontSize
+      fontSize: `${edgeData.labelFontSize}px`
     },
     labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
     labelShowBg: true,
