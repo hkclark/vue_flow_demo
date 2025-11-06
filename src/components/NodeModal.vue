@@ -50,40 +50,12 @@ watch(() => props.node, (newNode) => {
       deviceType: newNode.data.deviceType,
       isIcon: newNode.data.isIcon
     }
-    
-    // Position modal away from the node
-    const rect = document.querySelector('.vue-flow-canvas')?.getBoundingClientRect()
-    if (rect) {
-      const nodeX = newNode.position.x || 0
-      const nodeY = newNode.position.y || 0
-      const nodeWidth = newNode.data.width || 70
-      const nodeHeight = newNode.data.height || 70
-      
-      // Try to position to the right of the node with some offset
-      let x = nodeX + nodeWidth + 80
-      
-      // If it doesn't fit on the right, try left
-      if (x + 600 > rect.width) {
-        x = nodeX - 680
-      }
-      
-      // If it doesn't fit on the left either, default to a safe position
-      if (x < 20) {
-        x = Math.max(20, rect.width - 650)
-      }
-      
-      // Position vertically - try to align with node but avoid covering it
-      let y = nodeY - 50
-      
-      // Make sure it fits vertically
-      if (y + 500 > rect.height) {
-        y = Math.max(20, rect.height - 520)
-      }
-      if (y < 20) {
-        y = 20
-      }
-      
-      position.value = { x, y }
+
+    // Position modal in a fixed position - top center of screen
+    // This way it never covers any nodes
+    position.value = {
+      x: window.innerWidth / 2 - 290, // Center horizontally (290 = half of 580px modal width)
+      y: 100 // Fixed distance from top
     }
   }
 }, { immediate: true })
@@ -94,7 +66,7 @@ const handleSubmit = () => {
 
 const startDrag = (e) => {
   if (e.target.closest('.modal-body') || e.target.closest('button')) return
-  
+
   isDragging.value = true
   dragStart.value = {
     x: e.clientX - position.value.x,
@@ -121,9 +93,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div 
+  <div
     ref="modalRef"
-    class="draggable-modal" 
+    class="draggable-modal"
     :style="{ left: position.x + 'px', top: position.y + 'px' }"
   >
     <div class="modal-header" @mousedown="startDrag">
@@ -141,12 +113,12 @@ onMounted(() => {
       <h3>Edit Shape</h3>
       <button @click="emit('close')" class="close-btn">×</button>
     </div>
-    
+
     <div class="modal-body">
       <div class="two-column">
         <div class="left-column">
           <div class="section-title">Label Customization</div>
-          
+
           <div class="form-group">
             <label>Label Text</label>
             <input v-model="formData.label" type="text" class="form-control">
@@ -176,22 +148,22 @@ onMounted(() => {
           <div class="form-group">
             <label>Label Style</label>
             <div class="button-group">
-              <button 
-                @click="formData.labelBold = !formData.labelBold" 
+              <button
+                @click="formData.labelBold = !formData.labelBold"
                 class="style-btn"
                 :class="{ active: formData.labelBold }"
               >
                 <strong>B</strong>
               </button>
-              <button 
-                @click="formData.labelItalic = !formData.labelItalic" 
+              <button
+                @click="formData.labelItalic = !formData.labelItalic"
                 class="style-btn"
                 :class="{ active: formData.labelItalic }"
               >
                 <em>I</em>
               </button>
-              <button 
-                @click="formData.labelUnderline = !formData.labelUnderline" 
+              <button
+                @click="formData.labelUnderline = !formData.labelUnderline"
                 class="style-btn"
                 :class="{ active: formData.labelUnderline }"
               >
@@ -203,7 +175,7 @@ onMounted(() => {
 
         <div class="right-column">
           <div class="section-title">Actions</div>
-          
+
           <button @click="emit('duplicate', formData.id)" class="action-btn">
             📋 Duplicate
           </button>
@@ -219,16 +191,16 @@ onMounted(() => {
           <div class="form-group">
             <label>Fill Color</label>
             <div class="color-with-checkbox">
-              <input 
-                v-model="formData.fillColor" 
-                type="color" 
+              <input
+                v-model="formData.fillColor"
+                type="color"
                 class="form-control color-input"
                 :disabled="formData.fillColor === 'none'"
               >
               <label class="checkbox-inline">
-                <input 
-                  type="checkbox" 
-                  :checked="formData.fillColor === 'none'" 
+                <input
+                  type="checkbox"
+                  :checked="formData.fillColor === 'none'"
                   @change="formData.fillColor = $event.target.checked ? 'none' : '#ffffff'"
                 >
                 <span>None</span>

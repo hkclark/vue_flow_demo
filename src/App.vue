@@ -6,6 +6,8 @@ import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
+import '@vue-flow/controls/dist/style.css'
+import '@vue-flow/minimap/dist/style.css'
 import NetworkNode from './components/NetworkNode.vue'
 import DevicePalette from './components/DevicePalette.vue'
 import EdgeModal from './components/EdgeModal.vue'
@@ -57,7 +59,7 @@ const shapePalette = [
 
 onConnect((params) => {
   const connType = connectionTypes.find(ct => ct.type === selectedConnectionType.value)
-  
+
   const edge = {
     ...params,
     type: 'smoothstep',
@@ -67,7 +69,7 @@ onConnect((params) => {
       strokeWidth: 2,
       ...connType.style
     },
-    data: { 
+    data: {
       connectionType: selectedConnectionType.value,
       centerLabel: '',
       sourceLabel: '',
@@ -81,24 +83,27 @@ onConnect((params) => {
       targetMarker: 'none'
     }
   }
-  
+
   addEdges([edge])
 })
 
 const onDrop = (event) => {
   event.preventDefault()
-  
+
   const data = event.dataTransfer.getData('application/json')
   if (!data) return
-  
+
   const item = JSON.parse(data)
   const { left, top } = event.currentTarget.getBoundingClientRect()
-  
+
   const position = {
     x: event.clientX - left - 35,
     y: event.clientY - top - 35
   }
-  
+
+  // Text elements have different defaults
+  const isText = item.type === 'text'
+
   const newNode = {
     id: `node-${Date.now()}`,
     type: 'network',
@@ -116,14 +121,15 @@ const onDrop = (event) => {
       labelBold: false,
       labelItalic: false,
       labelUnderline: false,
-      fillColor: item.isIcon ? 'none' : '#ffffff',
+      fillColor: isText ? 'none' : '#ffffff',
       borderColor: '#005073',
-      borderWidth: 2
+      borderWidth: isText ? 0 : 2
     },
     sourcePosition: Position.Right,
-    targetPosition: Position.Left
+    targetPosition: Position.Left,
+    zIndex: nodes.value.length
   }
-  
+
   addNodes([newNode])
 }
 
@@ -133,6 +139,10 @@ const onDragOver = (event) => {
 }
 
 const onEdgeClick = (event) => {
+  // Close any open node modal first
+  showNodeModal.value = false
+  selectedNodeId.value = null
+
   // event.edge contains the edge data in Vue Flow
   const edge = event.edge || event
   if (edge && edge.id) {
@@ -142,7 +152,11 @@ const onEdgeClick = (event) => {
 }
 
 const onNodeClick = (event) => {
-  // event.node contains the node data in Vue Flow  
+  // Close any open edge modal first
+  showEdgeModal.value = false
+  selectedEdge.value = null
+
+  // event.node contains the node data in Vue Flow
   const node = event.node || event
   if (node && node.id) {
     // Don't change z-order, just open modal
@@ -152,23 +166,30 @@ const onNodeClick = (event) => {
 }
 
 const updateEdgeData = (edgeData) => {
-  const edge = edges.value.find(e => e.id === edgeData.id)
-  if (!edge) return
-  
-  const lineStyle = edgeData.lineStyle === 'solid' ? '' : 
+  const edgeIndex = edges.value.findIndex(e => e.id === edgeData.id)
+  if (edgeIndex === -1) return
+
+  const lineStyle = edgeData.lineStyle === 'solid' ? '' :
                    edgeData.lineStyle === 'dashed' ? '8,4' : '2,4'
-  
+
   const markerStart = edgeData.sourceMarker !== 'none' ? {
     type: edgeData.sourceMarker,
-    color: edgeData.strokeColor
+    color: edgeData.strokeColor,
+    width: 20,
+    height: 20
   } : undefined
-  
+
   const markerEnd = edgeData.targetMarker !== 'none' ? {
     type: edgeData.targetMarker,
-    color: edgeData.strokeColor
+    color: edgeData.strokeColor,
+    width: 20,
+    height: 20
   } : undefined
-  
-  updateEdge(edgeData.id, {
+
+  // Update the edge in the array directly
+  edges.value[edgeIndex] = {
+    ...edges.value[edgeIndex],
+    type: 'smoothstep',
     style: {
       stroke: edgeData.strokeColor,
       strokeWidth: edgeData.strokeWidth,
@@ -176,21 +197,26 @@ const updateEdgeData = (edgeData) => {
     },
     animated: edgeData.lineStyle === 'dotted',
     label: edgeData.centerLabel,
-    labelStyle: { 
-      fill: edgeData.labelColor, 
-      fontWeight: 600, 
-      fontSize: edgeData.labelFontSize 
+    labelStyle: {
+      fill: edgeData.labelColor,
+      fontWeight: 600,
+      fontSize: edgeData.labelFontSize
     },
     labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+    labelShowBg: true,
+    markerStart: markerStart,
+    markerEnd: markerEnd,
     data: {
       ...edgeData,
-      sourceMarker: edgeData.sourceMarker,
-      targetMarker: edgeData.targetMarker
-    },
-    markerStart: markerStart,
-    markerEnd: markerEnd
-  })
-  
+      // Store labels for custom rendering
+      sourceLabel: edgeData.sourceLabel,
+      targetLabel: edgeData.targetLabel
+    }
+  }
+
+  // Force reactivity
+  edges.value = [...edges.value]
+
   showEdgeModal.value = false
   selectedEdge.value = null
 }
@@ -198,27 +224,41 @@ const updateEdgeData = (edgeData) => {
 const sendEdgeToFront = (edgeId) => {
   const edgeIndex = edges.value.findIndex(e => e.id === edgeId)
   if (edgeIndex === -1) return
-  
-  const edge = edges.value.splice(edgeIndex, 1)[0]
-  edges.value.push(edge)
+
+  const maxZIndex = Math.max(...edges.value.map(e => e.zIndex || 0), ...nodes.value.map(n => n.zIndex || 0), 0)
+
+  edges.value[edgeIndex] = {
+    ...edges.value[edgeIndex],
+    zIndex: maxZIndex + 1
+  }
+
+  edges.value = [...edges.value]
+  showEdgeModal.value = false
 }
 
 const sendEdgeToBack = (edgeId) => {
   const edgeIndex = edges.value.findIndex(e => e.id === edgeId)
   if (edgeIndex === -1) return
-  
-  const edge = edges.value.splice(edgeIndex, 1)[0]
-  edges.value.unshift(edge)
+
+  const minZIndex = Math.min(...edges.value.map(e => e.zIndex || 0), ...nodes.value.map(n => n.zIndex || 0), 0)
+
+  edges.value[edgeIndex] = {
+    ...edges.value[edgeIndex],
+    zIndex: minZIndex - 1
+  }
+
+  edges.value = [...edges.value]
+  showEdgeModal.value = false
 }
 
 const updateNodeData = (nodeData) => {
   const node = nodes.value.find(n => n.id === nodeData.id)
   if (!node) return
-  
+
   updateNode(nodeData.id, {
     data: nodeData
   })
-  
+
   showNodeModal.value = false
 }
 
@@ -231,16 +271,24 @@ const handleNodeDataUpdate = (nodeId, newData) => {
 const duplicateNode = (nodeId) => {
   const node = nodes.value.find(n => n.id === nodeId)
   if (!node) return
-  
+
+  const maxZIndex = Math.max(...nodes.value.map(n => n.zIndex || 0), 0)
+
   const newNode = {
-    ...node,
-    id: `node-${Date.now()}`,
+    id: `node-${Date.now()}-${Math.random()}`,
+    type: node.type,
     position: {
       x: node.position.x + 50,
       y: node.position.y + 50
-    }
+    },
+    data: {
+      ...node.data
+    },
+    sourcePosition: node.sourcePosition,
+    targetPosition: node.targetPosition,
+    zIndex: maxZIndex + 1
   }
-  
+
   addNodes([newNode])
   showNodeModal.value = false
 }
@@ -248,17 +296,23 @@ const duplicateNode = (nodeId) => {
 const sendToFront = (nodeId) => {
   const nodeIndex = nodes.value.findIndex(n => n.id === nodeId)
   if (nodeIndex === -1) return
-  
-  const node = nodes.value.splice(nodeIndex, 1)[0]
-  nodes.value.push(node)
+
+  const maxZIndex = Math.max(...nodes.value.map(n => n.zIndex || 0), 0)
+
+  updateNode(nodeId, {
+    zIndex: maxZIndex + 1
+  })
 }
 
 const sendToBack = (nodeId) => {
   const nodeIndex = nodes.value.findIndex(n => n.id === nodeId)
   if (nodeIndex === -1) return
-  
-  const node = nodes.value.splice(nodeIndex, 1)[0]
-  nodes.value.unshift(node)
+
+  const minZIndex = Math.min(...nodes.value.map(n => n.zIndex || 0), 0)
+
+  updateNode(nodeId, {
+    zIndex: minZIndex - 1
+  })
 }
 
 const deleteNode = (nodeId) => {
@@ -283,7 +337,7 @@ const saveDiagram = () => {
 const loadDiagram = (event) => {
   const file = event.target.files[0]
   if (!file) return
-  
+
   const reader = new FileReader()
   reader.onload = (e) => {
     try {
@@ -309,6 +363,51 @@ const clearDiagram = () => {
 }
 
 const fileInputRef = ref(null)
+
+const getSourceLabelStyle = (edge) => {
+  const sourceNode = nodes.value.find(n => n.id === edge.source)
+  if (!sourceNode) return { display: 'none' }
+
+  return {
+    position: 'absolute',
+    left: `${sourceNode.position.x + (sourceNode.data.width || 70) + 10}px`,
+    top: `${sourceNode.position.y + (sourceNode.data.height || 70) / 2}px`,
+    transform: 'translateY(-50%)',
+    color: edge.data?.labelColor || '#005073',
+    fontSize: `${edge.data?.labelFontSize || 12}px`,
+    fontWeight: '600',
+    background: 'white',
+    padding: '2px 6px',
+    borderRadius: '3px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    zIndex: 1000
+  }
+}
+
+const getTargetLabelStyle = (edge) => {
+  const targetNode = nodes.value.find(n => n.id === edge.target)
+  if (!targetNode) return { display: 'none' }
+
+  return {
+    position: 'absolute',
+    left: `${targetNode.position.x - 10}px`,
+    top: `${targetNode.position.y + (targetNode.data.height || 70) / 2}px`,
+    transform: 'translate(-100%, -50%)',
+    color: edge.data?.labelColor || '#005073',
+    fontSize: `${edge.data?.labelFontSize || 12}px`,
+    fontWeight: '600',
+    background: 'white',
+    padding: '2px 6px',
+    borderRadius: '3px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    zIndex: 1000
+  }
+}
+
 </script>
 
 <template>
@@ -345,9 +444,9 @@ const fileInputRef = ref(null)
         />
       </div>
     </div>
-    
+
     <div class="main-content">
-      <DevicePalette 
+      <DevicePalette
         :devicePalette="devicePalette"
         :shapePalette="shapePalette"
         :connectionTypes="connectionTypes"
@@ -358,7 +457,7 @@ const fileInputRef = ref(null)
         @update:showCiscoDevices="showCiscoDevices = $event"
         @update:showBasicShapes="showBasicShapes = $event"
       />
-      
+
       <div class="canvas-area">
         <VueFlow
           v-model:nodes="nodes"
@@ -374,21 +473,39 @@ const fileInputRef = ref(null)
           :min-zoom="0.25"
           :max-zoom="4"
         >
-          <Background 
-            pattern-color="#d1d5db" 
-            :gap="20" 
+          <Background
+            pattern-color="#d1d5db"
+            :gap="20"
             :size="1"
             variant="lines"
           />
-          <Controls 
+          <Controls
             :show-zoom="true"
             :show-fit-view="true"
-            :show-interactive="false"
+            :show-interactive="true"
           />
-          <MiniMap 
+          <MiniMap
             node-color="#005073"
             mask-color="rgba(0, 0, 0, 0.1)"
           />
+
+          <!-- Render source/target labels as overlays -->
+          <div class="edge-labels-overlay">
+            <div v-for="edge in edges.filter(e => e.data?.sourceLabel || e.data?.targetLabel)"
+                 :key="edge.id"
+                 class="edge-label-container">
+              <div v-if="edge.data?.sourceLabel && edge.source"
+                   class="edge-source-label"
+                   :style="getSourceLabelStyle(edge)">
+                {{ edge.data.sourceLabel }}
+              </div>
+              <div v-if="edge.data?.targetLabel && edge.target"
+                   class="edge-target-label"
+                   :style="getTargetLabelStyle(edge)">
+                {{ edge.data.targetLabel }}
+              </div>
+            </div>
+          </div>
         </VueFlow>
       </div>
     </div>

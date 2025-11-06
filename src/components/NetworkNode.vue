@@ -21,16 +21,32 @@ const labelStyle = computed(() => ({
   textDecoration: props.data.labelUnderline ? 'underline' : 'none'
 }))
 
-const nodeStyle = computed(() => ({
-  width: `${props.data.width}px`,
-  height: `${props.data.height}px`,
-  backgroundColor: props.data.fillColor === 'none' ? 'transparent' : props.data.fillColor,
-  border: `${props.data.borderWidth}px solid ${props.data.borderColor}`
-}))
+const nodeStyle = computed(() => {
+  const styles = {
+    width: `${props.data.width}px`,
+    height: `${props.data.height}px`
+  }
+
+  // Handle border
+  if (props.data.borderWidth > 0) {
+    styles.border = `${props.data.borderWidth}px solid ${props.data.borderColor}`
+  } else {
+    styles.border = 'none'
+  }
+
+  // Handle background color - MUST handle 'none' as transparent
+  if (props.data.fillColor === 'none' || props.data.fillColor === 'transparent') {
+    styles.backgroundColor = 'transparent'
+  } else {
+    styles.backgroundColor = props.data.fillColor
+  }
+
+  return styles
+})
 
 const iconSize = computed(() => ({
-  width: `${props.data.width * 0.8}px`,
-  height: `${props.data.height * 0.8}px`
+  width: `${props.data.width}px`,
+  height: `${props.data.height}px`
 }))
 
 const labelPositionClass = computed(() => `label-${props.data.labelPosition}`)
@@ -39,19 +55,21 @@ const startResize = (e, direction) => {
   e.stopPropagation()
   e.preventDefault()
   isResizing.value = true
-  
+
   const startX = e.clientX
   const startY = e.clientY
   const startWidth = props.data.width
   const startHeight = props.data.height
-  
+  const aspectRatio = startWidth / startHeight
+  const isIcon = props.data.isIcon
+
   const handleMouseMove = (e) => {
     const deltaX = e.clientX - startX
     const deltaY = e.clientY - startY
-    
+
     let newWidth = startWidth
     let newHeight = startHeight
-    
+
     if (direction.includes('e')) {
       newWidth = Math.max(40, startWidth + deltaX)
     }
@@ -64,22 +82,42 @@ const startResize = (e, direction) => {
     if (direction.includes('n')) {
       newHeight = Math.max(40, startHeight - deltaY)
     }
-    
+
+    // Lock aspect ratio for icons
+    if (isIcon) {
+      if (direction.includes('e') || direction.includes('w')) {
+        // Width changed, adjust height
+        newHeight = newWidth / aspectRatio
+      } else if (direction.includes('n') || direction.includes('s')) {
+        // Height changed, adjust width
+        newWidth = newHeight * aspectRatio
+      } else {
+        // Corner resize - use the larger delta
+        const absDeltraX = Math.abs(deltaX)
+        const absDeltaY = Math.abs(deltaY)
+        if (absDeltraX > absDeltaY) {
+          newHeight = newWidth / aspectRatio
+        } else {
+          newWidth = newHeight * aspectRatio
+        }
+      }
+    }
+
     updateNode(props.id, {
       data: {
         ...props.data,
-        width: newWidth,
-        height: newHeight
+        width: Math.round(newWidth),
+        height: Math.round(newHeight)
       }
     })
   }
-  
+
   const handleMouseUp = () => {
     isResizing.value = false
     document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
   }
-  
+
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
 }
@@ -87,7 +125,7 @@ const startResize = (e, direction) => {
 
 <template>
   <div class="network-node-container">
-    <div class="network-node" :style="nodeStyle">
+    <div class="network-node" :style="nodeStyle" :class="{ 'transparent-bg': data.fillColor === 'none' }">
       <!-- Resize handles -->
       <div v-if="selected" class="resize-handles">
         <div class="resize-handle nw" @mousedown="startResize($event, 'nw')"></div>
@@ -99,32 +137,32 @@ const startResize = (e, direction) => {
         <div class="resize-handle sw" @mousedown="startResize($event, 'sw')"></div>
         <div class="resize-handle w" @mousedown="startResize($event, 'w')"></div>
       </div>
-      
+
       <Handle type="target" :position="Position.Left" />
       <Handle type="target" :position="Position.Top" />
-      
+
       <div class="node-content" v-if="data.deviceType !== 'text'">
         <div class="node-icon" :style="iconSize" v-html="data.svg"></div>
       </div>
-      
+
       <div v-if="data.deviceType === 'text'" class="text-content" :style="labelStyle">
         {{ data.label }}
       </div>
-      
+
       <Handle type="source" :position="Position.Right" />
       <Handle type="source" :position="Position.Bottom" />
     </div>
-    
+
     <!-- Label outside unless center position -->
-    <div v-if="data.deviceType !== 'text' && data.labelPosition !== 'center'" 
-         class="node-label-external" 
+    <div v-if="data.deviceType !== 'text' && data.labelPosition !== 'center'"
+         class="node-label-external"
          :class="`label-${data.labelPosition}`"
          :style="labelStyle">
       {{ data.label }}
     </div>
-    
+
     <!-- Center label overlays on the icon -->
-    <div v-if="data.deviceType !== 'text' && data.labelPosition === 'center'" 
+    <div v-if="data.deviceType !== 'text' && data.labelPosition === 'center'"
          class="node-label-center"
          :style="labelStyle">
       {{ data.label }}
@@ -143,9 +181,12 @@ const startResize = (e, direction) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: white;
   border-radius: 4px;
   position: relative;
+}
+
+.network-node.transparent-bg {
+  background-color: transparent !important;
 }
 
 .resize-handles {
@@ -243,18 +284,22 @@ const startResize = (e, direction) => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 4px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .node-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .node-icon :deep(svg) {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .node-label-external {

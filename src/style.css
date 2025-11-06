@@ -46,3 +46,44 @@ body {
   background: #0066cc;
 }
 
+/* Fix for Vue Flow Controls icons */
+.vue-flow__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vue-flow__controls-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vue-flow__controls-button:hover {
+  background: #f8f9fa;
+  border-color: #0d6efd;
+}
+
+.vue-flow__controls-button svg {
+  width: 16px;
+  height: 16px;
+  fill: #495057;
+}
+
+.edge-labels-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+

@@ -35,23 +35,19 @@ watch(() => props.edge, (newEdge) => {
       targetLabel: newEdge.data?.targetLabel || '',
       strokeWidth: newEdge.data?.strokeWidth || 2,
       strokeColor: newEdge.data?.strokeColor || newEdge.style?.stroke || '#005073',
-      lineStyle: newEdge.data?.lineStyle ? 
-        (newEdge.data.lineStyle === '' ? 'solid' : 
+      lineStyle: newEdge.data?.lineStyle ?
+        (newEdge.data.lineStyle === '' ? 'solid' :
          newEdge.data.lineStyle === '8,4' ? 'dashed' : 'dotted') : 'solid',
       labelFontSize: newEdge.data?.labelFontSize || 12,
       labelColor: newEdge.data?.labelColor || '#005073',
       sourceMarker: newEdge.data?.sourceMarker || (newEdge.markerStart ? newEdge.markerStart.type : 'none'),
       targetMarker: newEdge.data?.targetMarker || (newEdge.markerEnd ? newEdge.markerEnd.type : 'none')
     }
-    
-    // Position modal away from the edge, towards bottom-right
-    const rect = document.querySelector('.vue-flow-canvas')?.getBoundingClientRect()
-    if (rect) {
-      // Default to bottom-right area
-      position.value = {
-        x: Math.max(50, rect.width - 680),
-        y: Math.max(50, Math.min(200, rect.height - 450))
-      }
+
+    // Position modal in a fixed position - top center of screen
+    position.value = {
+      x: window.innerWidth / 2 - 310, // Center horizontally (310 = half of 620px modal width)
+      y: 100 // Fixed distance from top
     }
   }
 }, { immediate: true })
@@ -62,7 +58,7 @@ const handleSubmit = () => {
 
 const startDrag = (e) => {
   if (e.target.closest('.modal-body') || e.target.closest('button:not(.drag-handle)')) return
-  
+
   isDragging.value = true
   dragStart.value = {
     x: e.clientX - position.value.x,
@@ -89,9 +85,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div 
+  <div
     ref="modalRef"
-    class="draggable-modal compact" 
+    class="draggable-modal compact"
     :style="{ left: position.x + 'px', top: position.y + 'px' }"
   >
     <div class="modal-header" @mousedown="startDrag">
@@ -109,7 +105,7 @@ onMounted(() => {
       <h3>Connection Details</h3>
       <button @click="emit('close')" class="close-btn">×</button>
     </div>
-    
+
     <div class="modal-body">
       <div class="form-group">
         <label>Center Label</label>

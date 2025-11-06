@@ -3,6 +3,6 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/vue_flow_demo/',
+  base: '/vue_flow_demo/'
 })
 

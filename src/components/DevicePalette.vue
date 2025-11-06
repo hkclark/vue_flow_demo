@@ -35,7 +35,7 @@ const toggleSection = (section) => {
     </div>
 
     <div class="palette-section">
-      <button 
+      <button
         class="section-header"
         :class="{ active: showBasicShapes }"
         @click="toggleSection('basic')"
@@ -58,7 +58,7 @@ const toggleSection = (section) => {
     </div>
 
     <div class="palette-section">
-      <button 
+      <button
         class="section-header"
         :class="{ active: showCiscoDevices }"
         @click="toggleSection('cisco')"
